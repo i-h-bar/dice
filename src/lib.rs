@@ -61,6 +61,7 @@ impl<'a> Dice {
     }
 }
 
+
 trait Rollable {
     fn roll(&self) -> String;
 }
@@ -134,11 +135,70 @@ impl Rollable for DN {
     }
 }
 
-fn main() {
-    let dice = Dice::from("2d20").unwrap();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    for _ in 0..10 {
-        let roll = dice.roll();
-        println!("{roll}")
+    #[test]
+    fn test_d20() {
+        let dice = Dice::from("2d6").unwrap();
+
+        for _ in 0..100 {
+            assert!((2..=12).contains(&dice.roll().parse::<i32>().unwrap()))
+        }
+    }
+
+    #[test]
+    fn test_fd() {
+        let dice = Dice::from("fd").unwrap();
+
+        for _ in 0..100 {
+            assert!(FORCE.contains(&dice.roll().as_str()))
+        }
+    }
+
+    #[test]
+    fn test_bd() {
+        let dice = Dice::from("bd").unwrap();
+
+        for _ in 0..100 {
+            assert!(BOOST.contains(&dice.roll().as_str()))
+        }
+    }
+
+    #[test]
+    fn test_sb() {
+        let dice = Dice::from("sb").unwrap();
+
+        for _ in 0..100 {
+            assert!(SETBACK.contains(&dice.roll().as_str()))
+        }
+    }
+
+    #[test]
+    fn test_dd() {
+        let dice = Dice::from("dd").unwrap();
+
+        for _ in 0..100 {
+            assert!(DIFFICULTY.contains(&dice.roll().as_str()))
+        }
+    }
+
+    #[test]
+    fn test_pd() {
+        let dice = Dice::from("pd").unwrap();
+
+        for _ in 0..100 {
+            assert!(PROFICIENCY.contains(&dice.roll().as_str()))
+        }
+    }
+
+    #[test]
+    fn test_cd() {
+        let dice = Dice::from("cd").unwrap();
+
+        for _ in 0..100 {
+            assert!(CHALLENGE.contains(&dice.roll().as_str()))
+        }
     }
 }
