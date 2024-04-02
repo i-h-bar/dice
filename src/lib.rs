@@ -1,29 +1,74 @@
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{format, Debug, Display, Formatter};
 
 use rand::Rng;
 
 const BOOST: [&str; 6] = ["▢", "▢", "✶", "✶℧", "℧℧", "℧"];
 const SETBACK: [&str; 6] = ["▢", "▢", "▼", "▼", "⎔", "⎔"];
 const DIFFICULTY: [&str; 8] = ["▢", "▼", "▼▼", "⎔", "⎔", "⎔", "⎔⎔", "▼⎔"];
-const PROFICIENCY: [&str; 12] = ["▢", "✶", "✶", "✶✶", "✶✶", "℧", "⎈", "℧℧", "℧℧", "✶℧", "✶℧", "✶℧"];
-const CHALLENGE: [&str; 12] = ["▼", "▼", "▼▼", "▼▼", "⎔", "⎔", "▼⎔", "▼⎔", "⎔⎔", "⎔⎔", "⎊", "▢"];
-const FORCE: [&str; 12] = ["●", "●", "●", "●", "●", "●", "●●", "○", "○", "○○", "○○", "○○"];
+const PROFICIENCY: [&str; 12] = [
+    "▢", "✶", "✶", "✶✶", "✶✶", "℧", "⎈", "℧℧", "℧℧", "✶℧", "✶℧", "✶℧",
+];
+const CHALLENGE: [&str; 12] = [
+    "▼", "▼", "▼▼", "▼▼", "⎔", "⎔", "▼⎔", "▼⎔", "⎔⎔", "⎔⎔", "⎊", "▢",
+];
+const FORCE: [&str; 12] = [
+    "●", "●", "●", "●", "●", "●", "●●", "○", "○", "○○", "○○", "○○",
+];
 
+const U8_MAX: u16 = u8::MAX as u16;
+
+struct DiceTooLargeError<'a> {
+    input: &'a str,
+}
+
+impl Debug for DiceTooLargeError<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Input: '{}' too large to form a dice please use numbers <{}",
+            self.input, U8_MAX
+        )
+    }
+}
+
+impl Display for DiceTooLargeError<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Input: '{}' too large to form a dice please use numbers <{}",
+            self.input, U8_MAX
+        )
+    }
+}
+
+impl Error for DiceTooLargeError<'_> {
+    fn description(&self) -> &str {
+        self.input
+    }
+}
 
 struct DiceParseError<'a> {
-    input: &'a str
+    input: &'a str,
 }
 
 impl Debug for DiceParseError<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Could not parse the input: '{}' to form a dice", self.input)
+        write!(
+            f,
+            "Could not parse the input: '{}' to form a dice",
+            self.input
+        )
     }
 }
 
 impl Display for DiceParseError<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Could not parse the input: '{}' to form a dice", self.input)
+        write!(
+            f,
+            "Could not parse the input: {} to form a dice",
+            self.input
+        )
     }
 }
 
@@ -32,7 +77,6 @@ impl Error for DiceParseError<'_> {
         self.input
     }
 }
-
 
 struct Dice {}
 
@@ -46,21 +90,22 @@ impl<'a> Dice {
             "cd" => Ok(Box::new(Challenge {})),
             "fd" => Ok(Box::new(Force {})),
             other => {
-                let split: Vec<&str> = other.split("d").collect();
-                if split.iter().count() != 2 {
-                    return Err(Box::new(DiceParseError {input: other}))
+                let [num, dtype] = <[&str; 2]>::try_from(other.split("d").collect::<Vec<&str>>())
+                    .ok()
+                    .ok_or(Box::new(DiceParseError { input: other }))?;
+
+                let num = num.trim().parse()?;
+                let dtype = dtype.trim().parse()?;
+
+                if num > U8_MAX || dtype > U8_MAX {
+                    return Err(Box::new(DiceTooLargeError { input: other }));
                 }
 
-                let [num, dtype] = <[&str; 2]>::try_from(split)
-                    .ok()
-                    .ok_or(Box::new(DiceParseError {input: other}))?;
-
-                Ok(Box::new(DN { num: num.trim().parse()?, dtype: dtype.trim().parse()? }))
+                Ok(Box::new(DN { num, dtype }))
             }
         }
     }
 }
-
 
 trait Rollable {
     fn roll(&self) -> String;
@@ -74,7 +119,6 @@ impl Rollable for Boost {
     }
 }
 
-
 struct Setback {}
 
 impl Rollable for Setback {
@@ -82,7 +126,6 @@ impl Rollable for Setback {
         SETBACK[rand::thread_rng().gen_range(0..SETBACK.len())].to_string()
     }
 }
-
 
 struct Difficulty {}
 
@@ -92,7 +135,6 @@ impl Rollable for Difficulty {
     }
 }
 
-
 struct Challenge {}
 
 impl Rollable for Challenge {
@@ -100,7 +142,6 @@ impl Rollable for Challenge {
         CHALLENGE[rand::thread_rng().gen_range(0..CHALLENGE.len())].to_string()
     }
 }
-
 
 struct Proficiency {}
 
@@ -110,7 +151,6 @@ impl Rollable for Proficiency {
     }
 }
 
-
 struct Force {}
 
 impl Rollable for Force {
@@ -118,7 +158,6 @@ impl Rollable for Force {
         FORCE[rand::thread_rng().gen_range(0..FORCE.len())].to_string()
     }
 }
-
 
 struct DN {
     num: u16,
@@ -200,5 +239,11 @@ mod tests {
         for _ in 0..100 {
             assert!(CHALLENGE.contains(&dice.roll().as_str()))
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_error() {
+        let dice = Dice::from("4000d4000").unwrap();
     }
 }
